@@ -69,13 +69,13 @@ defmodule Linkbot.SessionRunner do
   end
 
   def handle_call(:stop_session, _from, %{port: nil} = state),
-    do: {:reply, :not_running, state}
+    do: {:reply, :not_running, %{state | query: nil, started_at: nil}}
 
   def handle_call(:stop_session, _from, %{port: port, os_pid: os_pid} = state) do
     if os_pid, do: System.cmd("kill", ["-TERM", Integer.to_string(os_pid)])
     Port.close(port)
     broadcast(:stopped, %{reason: :user})
-    {:reply, :ok, %{state | port: nil, os_pid: nil}}
+    {:reply, :ok, %{state | port: nil, os_pid: nil, query: nil, started_at: nil}}
   end
 
   def handle_call(:status, _from, state) do
