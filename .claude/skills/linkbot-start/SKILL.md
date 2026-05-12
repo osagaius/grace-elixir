@@ -5,9 +5,9 @@ description: Boot the Linkbot Phoenix LiveView app (mix phx.server) and open the
 
 # linkbot-start
 
-Boots the Phoenix app in `/Users/osayame/.superset/worktrees/grace/elixir`
-and opens the LiveView dashboard so the user can watch the Claude session
-apply to jobs.
+Boots the Phoenix app in the current workspace (the repo root containing
+`mix.exs`) and opens the LiveView dashboard so the user can watch the Claude
+session apply to jobs.
 
 ## Steps
 
@@ -28,8 +28,11 @@ apply to jobs.
    `run_in_background: true`. The exact command:
 
    ```bash
-   cd /Users/osayame/.superset/worktrees/grace/elixir && mix phx.server
+   mix phx.server
    ```
+
+   Run it from the repo root (the directory containing `mix.exs`). Use an
+   absolute path with `cd` if your current shell isn't already there.
 
    Capture the background shell id so the user can stop it later (mention
    `BashKill` / `BashOutput` only if they ask).
