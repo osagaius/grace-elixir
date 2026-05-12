@@ -24,8 +24,12 @@ defmodule LinkbotWeb.JobsLive do
      |> assign(:current_query, query)
      |> assign(:log_count, length(log))
      |> stream_configure(:jobs, dom_id: &"job-#{&1.id}")
+     |> stream(:jobs, [])
      |> stream(:log, Enum.map(log, &with_id/1))
-     |> assign_jobs()}
+     |> assign(:counts, %{})
+     |> assign(:total, 0)
+     |> assign(:visible_total, 0)
+     |> assign(:filter_form, to_form(%{"applied_only" => false}, as: :filter))}
   end
 
   defp assign_jobs(socket) do
