@@ -193,46 +193,17 @@ defmodule LinkbotWeb.JobsLive do
       <div class="max-w-7xl mx-auto p-6 space-y-6">
         <header class="flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold tracking-tight">Linkbot</h1>
+            <h1 class="text-3xl font-bold tracking-tight">Grace</h1>
             <p class="text-sm opacity-70">
               Phoenix LiveView dashboard for a Claude session that applies to LinkedIn jobs.
             </p>
           </div>
           <div class="flex gap-2">
-            <button :if={!@running?} phx-click="run" class="btn btn-primary">
-              ▶ Run session
-            </button>
             <button :if={@running?} phx-click="stop" class="btn btn-error">
               ■ Stop session
             </button>
           </div>
         </header>
-
-        <section class="card bg-base-100 shadow">
-          <div class="card-body">
-            <div class="flex flex-wrap gap-6 items-center">
-              <div>
-                <div class="text-xs uppercase opacity-60">Status</div>
-                <div class="font-mono">
-                  <span :if={@running?} class="text-success">● running</span>
-                  <span :if={!@running?} class="opacity-60">○ idle</span>
-                </div>
-              </div>
-              <div class="flex-1">
-                <div class="text-xs uppercase opacity-60">Search query</div>
-                <div class="font-mono text-sm">{@current_query || @default_query}</div>
-              </div>
-              <div class="flex gap-4">
-                <.stat label="total" value={@total} />
-                <.stat label="shown" value={@visible_total} />
-                <.stat label="found" value={Map.get(@counts, "found", 0)} />
-                <.stat label="applied" value={Map.get(@counts, "applied", 0)} />
-                <.stat label="skipped" value={Map.get(@counts, "skipped", 0)} />
-                <.stat label="failed" value={Map.get(@counts, "failed", 0)} />
-              </div>
-            </div>
-          </div>
-        </section>
 
         <section class="card bg-base-100 shadow">
           <div class="card-body py-4">
