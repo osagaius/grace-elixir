@@ -19,6 +19,7 @@ defmodule LinkbotWeb.Router do
 
     live "/", JobsLive, :index
     live "/apply", ApplyLive, :index
+    live "/jobs/:id/apply", ApplyLive, :for_job
   end
 
   # Other scopes may use custom stacks.
