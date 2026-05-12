@@ -63,6 +63,54 @@ defmodule LinkbotWeb.JobsLiveTest do
       refute has_element?(view, "#job-#{found.id}")
     end
 
+    test "filters job rows by role source tag location and remote flag", %{conn: conn} do
+      matching =
+        job_fixture(%{
+          title: "Matching Filter Engineer",
+          external_id: "matching-filter-300",
+          source: "linkedin",
+          role: "backend",
+          tags: ["elixir", "postgres"],
+          location: "Remote - United States",
+          remote: true
+        })
+
+      nonmatching =
+        job_fixture(%{
+          title: "Nonmatching Filter Engineer",
+          external_id: "nonmatching-filter-300",
+          source: "remoteok",
+          role: "frontend",
+          tags: ["react"],
+          location: "Dublin, Ireland",
+          remote: false
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      view
+      |> element("#job-filters")
+      |> render_change(%{
+        "filter" => %{
+          "role" => "backend",
+          "source" => "linkedin",
+          "tag" => "postgres",
+          "location" => "united states",
+          "remote_only" => "true"
+        }
+      })
+
+      patched_path = assert_patch(view)
+      assert patched_path =~ "role=backend"
+      assert patched_path =~ "source=linkedin"
+      assert patched_path =~ "tag=postgres"
+      assert patched_path =~ "location=united+states"
+      assert patched_path =~ "remote_only=true"
+
+      assert has_element?(view, "#job-#{matching.id}")
+      refute has_element?(view, "#job-#{nonmatching.id}")
+    end
+
     test "live-updates when a job is created via the context", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
