@@ -5,45 +5,35 @@ description: Boot the Linkbot Phoenix LiveView app (mix phx.server) and open the
 
 # linkbot-start
 
-Boots the Phoenix app in `/Users/osayame/.superset/worktrees/grace/elixir`
-and opens the LiveView dashboard so the user can watch the Claude session
+Boots the consolidated Phoenix app in `/Users/osayame/.superset/worktrees/grace-elixir/agreeable-starflower`
+and opens the Linkbot dashboard so the user can watch the Claude session
 apply to jobs.
 
 ## Steps
 
-1. **Determine the port.** The default port is configured in
-   `config/runtime.exs` (currently `4050`). It can be overridden with the
-   `PORT` env var. Detect the active port by reading that file — grep for
-   `String.to_integer(System.get_env("PORT"`. If you cannot determine it, fall
-   back to `4050`.
+1. **Determine the ports.** 
+   - Linkbot: `4050` (configured in `config/dev.exs`)
+   - Grace Jobs: `4000` (configured in `config/dev.exs`)
 
 2. **Skip the boot if it's already running.** Run
-   `lsof -iTCP:<port> -sTCP:LISTEN -n -P`. If something is already listening on
-   the port, fetch `http://127.0.0.1:<port>/` and look for the `Linkbot`
-   title — if present, jump straight to step 5 (no need to start again). If
-   another app is on the port and you cannot reach a Linkbot response, stop
-   and tell the user — do not kill the foreign process.
+   `lsof -iTCP:4050 -sTCP:LISTEN -n -P`. If something is already listening on
+   the port, fetch `http://127.0.0.1:4050/` and look for the `Linkbot`
+   title.
 
 3. **Start the server in the background** with the Bash tool's
    `run_in_background: true`. The exact command:
 
    ```bash
-   cd /Users/osayame/.superset/worktrees/grace/elixir && mix phx.server
+   cd /Users/osayame/.superset/worktrees/grace-elixir/agreeable-starflower && mix phx.server
    ```
 
-   Capture the background shell id so the user can stop it later (mention
-   `BashKill` / `BashOutput` only if they ask).
+4. **Wait until the port is listening.** Poll every 500 ms.
 
-4. **Wait until the port is listening.** Poll every 500 ms (no `sleep`-loops
-   in Bash — use the `Monitor` tool with `until lsof -iTCP:<port> -sTCP:LISTEN
-   -n -P >/dev/null; do sleep 0.5; done`). Cap at 30 s — if the port still
-   isn't open by then, run `BashOutput` on the server shell, surface any
-   compile/boot errors, and stop.
-
-5. **Open the dashboard.** Run:
+5. **Open the dashboards.** Run:
 
    ```bash
-   open http://localhost:<port>/
+   open http://localhost:4050/
+   open http://localhost:4000/
    ```
 
    on macOS. (On Linux: `xdg-open`; on Windows/WSL: `cmd.exe /c start`.)

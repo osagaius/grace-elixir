@@ -1,18 +1,19 @@
-# Linkbot
+# Linkbot & Grace Jobs
 
-To start your Phoenix server:
+This repository consolidates the Linkbot application (Claude session runner) and the Grace Jobs application (harvesters and job pipeline).
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+## Applications
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+* **Linkbot** (Port 4050): Phoenix LiveView dashboard for running Claude sessions that apply to LinkedIn jobs.
+* **Grace Jobs** (Port 4000): Phoenix LiveView dashboard for harvesting and classifying jobs from various sources.
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+Both applications share the same Postgres database (`grace_jobs_dev`).
 
-## Learn more
+## Getting Started
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+* Run `mix setup` to install and setup dependencies for both components.
+* Start the consolidated Phoenix server with `mix phx.server`. Both endpoints will boot.
+
+Now you can visit:
+* [`localhost:4050`](http://localhost:4050) for Linkbot.
+* [`localhost:4000`](http://localhost:4000) for Grace Jobs (also mapped to `/grace` on port 4050).

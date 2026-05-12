@@ -1,9 +1,9 @@
-defmodule Linkbot.MixProject do
+defmodule GraceJobs.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :linkbot,
+      app: :grace_jobs,
       version: "0.1.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -20,7 +20,7 @@ defmodule Linkbot.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Linkbot.Application, []},
+      mod: {GraceJobs.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
@@ -60,17 +60,16 @@ defmodule Linkbot.MixProject do
        depth: 1},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
+      {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      # Job pipeline (from grace_jobs)
+      # Job pipeline
       {:gen_stage, "~> 1.2"},
       {:oban, "~> 2.18"},
       # HTTP / parsing
       {:req, "~> 0.5"},
       {:floki, "~> 0.36"},
-      # Gettext
-      {:gettext, "~> 1.0"},
       # Coding agent dev tool
       {:tidewave, "~> 0.5", only: :dev},
       # Test helpers
@@ -92,10 +91,10 @@ defmodule Linkbot.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind linkbot", "esbuild linkbot"],
+      "assets.build": ["compile", "tailwind grace_jobs", "esbuild grace_jobs"],
       "assets.deploy": [
-        "tailwind linkbot --minify",
-        "esbuild linkbot --minify",
+        "tailwind grace_jobs --minify",
+        "esbuild grace_jobs --minify",
         "phx.digest"
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]

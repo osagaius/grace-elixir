@@ -1,11 +1,11 @@
-defmodule LinkbotWeb.Router do
-  use LinkbotWeb, :router
+defmodule GraceJobsWeb.Router do
+  use GraceJobsWeb, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
-    plug :put_root_layout, html: {LinkbotWeb.Layouts, :root}
+    plug :put_root_layout, html: {GraceJobsWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
@@ -14,25 +14,20 @@ defmodule LinkbotWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", LinkbotWeb do
+  scope "/", GraceJobsWeb do
     pipe_through :browser
 
     live "/", JobsLive, :index
-  end
-
-  scope "/grace", GraceJobsWeb do
-    pipe_through :browser
-
-    live "/", JobsLive, :index
+    get "/about", PageController, :home
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", LinkbotWeb do
+  # scope "/api", GraceJobsWeb do
   #   pipe_through :api
   # end
 
   # Enable LiveDashboard in development
-  if Application.compile_env(:linkbot, :dev_routes) do
+  if Application.compile_env(:grace_jobs, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put
     # it behind authentication and allow only admins to access it.
     # If your application does not have an admins-only section yet,
@@ -43,7 +38,7 @@ defmodule LinkbotWeb.Router do
     scope "/dev" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: LinkbotWeb.Telemetry
+      live_dashboard "/dashboard", metrics: GraceJobsWeb.Telemetry
     end
   end
 end

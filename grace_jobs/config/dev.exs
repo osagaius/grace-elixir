@@ -1,27 +1,6 @@
 import Config
 
-config :grace_jobs, GraceJobsWeb.Endpoint,
-  http: [ip: {127, 0, 0, 1}, port: 4000],
-  check_origin: false,
-  code_reloader: true,
-  debug_errors: true,
-  secret_key_base: "MT5D3N9qVz23TOHGo8CGOTYolzEfKVF5RwCiYfVYIVfj6kdvjTgVwrrJTK2SKM6j",
-  watchers: [
-    esbuild: {Esbuild, :install_and_run, [:grace_jobs, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:grace_jobs, ~w(--watch)]}
-  ]
-
 # Configure your database
-config :linkbot, Linkbot.Repo,
-  username: System.get_env("PGUSER", "osayame"),
-  password: System.get_env("PGPASSWORD", ""),
-  hostname: System.get_env("PGHOST", "localhost"),
-  database: System.get_env("PGDATABASE", "grace_jobs_dev"),
-  port: String.to_integer(System.get_env("PGPORT", "5432")),
-  pool_size: 10,
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true
-
 config :grace_jobs, GraceJobs.Repo,
   username: System.get_env("PGUSER", "osayame"),
   password: System.get_env("PGPASSWORD", ""),
@@ -37,17 +16,17 @@ config :grace_jobs, GraceJobs.Repo,
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :linkbot, LinkbotWeb.Endpoint,
+config :grace_jobs, GraceJobsWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}, port: 4050],
+  http: [ip: {127, 0, 0, 1}],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "YZw9UaNRMv8kEq8N+nKCddXQkIyADRUv8qysZG1HMjAibopVHLVcMFBrIIbs34YI",
+  secret_key_base: "MT5D3N9qVz23TOHGo8CGOTYolzEfKVF5RwCiYfVYIVfj6kdvjTgVwrrJTK2SKM6j",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:linkbot, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:linkbot, ~w(--watch)]}
+    esbuild: {Esbuild, :install_and_run, [:grace_jobs, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:grace_jobs, ~w(--watch)]}
   ]
 
 # ## SSL Support
@@ -74,20 +53,22 @@ config :linkbot, LinkbotWeb.Endpoint,
 # different ports.
 
 # Reload browser tabs when matching files change.
-config :linkbot, LinkbotWeb.Endpoint,
+config :grace_jobs, GraceJobsWeb.Endpoint,
   live_reload: [
     web_console_logger: true,
     patterns: [
       # Static assets, except user uploads
       ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$"E,
+      # Gettext translations
+      ~r"priv/gettext/.*\.po$"E,
       # Router, Controllers, LiveViews and LiveComponents
-      ~r"lib/linkbot_web/router\.ex$"E,
-      ~r"lib/linkbot_web/(controllers|live|components)/.*\.(ex|heex)$"E
+      ~r"lib/grace_jobs_web/router\.ex$"E,
+      ~r"lib/grace_jobs_web/(controllers|live|components)/.*\.(ex|heex)$"E
     ]
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :linkbot, dev_routes: true
+config :grace_jobs, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"

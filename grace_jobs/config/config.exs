@@ -7,8 +7,8 @@
 # General application configuration
 import Config
 
-config :linkbot,
-  ecto_repos: [Linkbot.Repo, GraceJobs.Repo],
+config :grace_jobs,
+  ecto_repos: [GraceJobs.Repo],
   generators: [timestamp_type: :utc_datetime]
 
 # Oban — daily harvest cron at 09:00 UTC
@@ -24,7 +24,7 @@ config :grace_jobs, Oban,
      ]}
   ]
 
-# Pluggable scraper / LLM modules
+# Pluggable scraper / LLM modules — overridden in test
 config :grace_jobs, :scrapers,
   remoteok: GraceJobs.Scrapers.RemoteOK,
   weworkremotely: GraceJobs.Scrapers.WeWorkRemotely,
@@ -42,25 +42,19 @@ config :grace_jobs, :anthropic,
   base_url: "https://api.anthropic.com"
 
 # Configure the endpoint
-config :linkbot, LinkbotWeb.Endpoint,
+config :grace_jobs, GraceJobsWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: LinkbotWeb.ErrorHTML, json: LinkbotWeb.ErrorJSON],
+    formats: [html: GraceJobsWeb.ErrorHTML, json: GraceJobsWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Linkbot.PubSub,
-  live_view: [signing_salt: "BS3H9e3B"]
+  pubsub_server: GraceJobs.PubSub,
+  live_view: [signing_salt: "67fxgsaU"]
 
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
-  linkbot: [
-    args:
-      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
-    cd: Path.expand("../assets", __DIR__),
-    env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
-  ],
   grace_jobs: [
     args:
       ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
@@ -71,13 +65,6 @@ config :esbuild,
 # Configure tailwind (the version is required)
 config :tailwind,
   version: "4.1.12",
-  linkbot: [
-    args: ~w(
-      --input=assets/css/app.css
-      --output=priv/static/assets/css/app.css
-    ),
-    cd: Path.expand("..", __DIR__)
-  ],
   grace_jobs: [
     args: ~w(
       --input=assets/css/app.css

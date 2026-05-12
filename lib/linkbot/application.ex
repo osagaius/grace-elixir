@@ -10,11 +10,16 @@ defmodule Linkbot.Application do
     children = [
       LinkbotWeb.Telemetry,
       Linkbot.Repo,
+      GraceJobs.Repo,
       {Ecto.Migrator,
        repos: Application.fetch_env!(:linkbot, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:linkbot, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Linkbot.PubSub},
+      {Phoenix.PubSub, name: GraceJobs.PubSub},
+      {Oban, Application.fetch_env!(:grace_jobs, Oban)},
+      GraceJobs.Pipeline.Supervisor,
       Linkbot.SessionRunner,
+      GraceJobsWeb.Endpoint,
       LinkbotWeb.Endpoint
     ]
 
