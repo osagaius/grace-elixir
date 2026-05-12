@@ -52,12 +52,38 @@ defmodule Linkbot.Jobs do
     |> Enum.into(%{})
   end
 
+  def filter_options do
+    %{
+      roles: distinct_values(:role),
+      sources: distinct_values(:source)
+    }
+  end
+
   defp apply_filters(query, filters) do
     Enum.reduce(filters, query, fn
+      {:role, nil}, q -> q
+      {:role, role}, q -> where(q, [j], j.role == ^role)
+      {:source, nil}, q -> q
+      {:source, source}, q -> where(q, [j], j.source == ^source)
+      {:tag, nil}, q -> q
+      {:tag, tag}, q -> where(q, [j], ^tag in j.tags)
+      {:remote_only, true}, q -> where(q, [j], j.remote == true)
+      {:remote_only, _}, q -> q
       {:applied_only, true}, q -> where(q, [j], j.status == "applied")
       {:applied_only, _}, q -> q
+      {:location, nil}, q -> q
+      {:location, ""}, q -> q
+      {:location, location}, q -> where(q, [j], ilike(j.location, ^"%#{location}%"))
       _, q -> q
     end)
+  end
+
+  defp distinct_values(field) when field in [:role, :source] do
+    Repo.all(
+      from j in Job, distinct: true, order_by: [asc: field(j, ^field)], select: field(j, ^field)
+    )
+    |> Enum.reject(&is_nil/1)
+    |> Enum.reject(&(&1 == ""))
   end
 
   defp tap_broadcast({:ok, job} = result, event) do

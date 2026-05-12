@@ -20,26 +20,46 @@ defmodule LinkbotWeb.JobsLive do
      |> assign(:page_title, "Linkbot")
      |> assign(:default_query, SessionPrompt.default_query())
      |> assign(:running?, running?)
+     |> assign(:role, "")
+     |> assign(:source, "")
+     |> assign(:tag, "")
      |> assign(:applied_only, false)
+     |> assign(:location, "")
+     |> assign(:remote_only, false)
+     |> assign(:roles, [])
+     |> assign(:sources, [])
      |> assign(:current_query, query)
      |> assign(:log_count, length(log))
      |> stream_configure(:jobs, dom_id: &"job-#{&1.id}")
+     |> stream(:jobs, [])
      |> stream(:log, Enum.map(log, &with_id/1))
-     |> assign_jobs()}
+     |> assign(:counts, %{})
+     |> assign(:total, 0)
+     |> assign(:visible_total, 0)
+     |> assign(:filter_form, filter_form(%{}))}
   end
 
   defp assign_jobs(socket) do
-    jobs = Jobs.list_jobs(applied_only: socket.assigns.applied_only)
+    jobs =
+      Jobs.list_jobs(
+        role: nilify(socket.assigns.role),
+        source: nilify(socket.assigns.source),
+        tag: nilify(socket.assigns.tag),
+        remote_only: socket.assigns.remote_only,
+        applied_only: socket.assigns.applied_only,
+        location: nilify(socket.assigns.location)
+      )
+
     counts = Jobs.count_by_status()
+    %{roles: roles, sources: sources} = Jobs.filter_options()
 
     socket
     |> assign(:counts, counts)
+    |> assign(:roles, roles)
+    |> assign(:sources, sources)
     |> assign(:total, Enum.sum(Map.values(counts)))
     |> assign(:visible_total, length(jobs))
-    |> assign(
-      :filter_form,
-      to_form(%{"applied_only" => socket.assigns.applied_only}, as: :filter)
-    )
+    |> assign(:filter_form, filter_form(socket.assigns))
     |> stream(:jobs, jobs, reset: true)
   end
 
@@ -49,7 +69,12 @@ defmodule LinkbotWeb.JobsLive do
   def handle_params(params, _uri, socket) do
     {:noreply,
      socket
+     |> assign(:role, params["role"] || "")
+     |> assign(:source, params["source"] || "")
+     |> assign(:tag, params["tag"] || "")
      |> assign(:applied_only, params["applied_only"] == "true")
+     |> assign(:location, params["location"] || "")
+     |> assign(:remote_only, params["remote_only"] == "true")
      |> assign_jobs()}
   end
 
@@ -75,11 +100,13 @@ defmodule LinkbotWeb.JobsLive do
 
   def handle_event("filter", %{"filter" => filter}, socket) do
     params =
-      if filter["applied_only"] == "true" do
-        [applied_only: "true"]
-      else
-        []
-      end
+      []
+      |> maybe_put_param(:role, nilify(filter["role"]))
+      |> maybe_put_param(:source, nilify(filter["source"]))
+      |> maybe_put_param(:tag, nilify(filter["tag"]))
+      |> maybe_put_param(:location, nilify(filter["location"]))
+      |> maybe_put_param(:remote_only, filter["remote_only"] == "true" && "true")
+      |> maybe_put_param(:applied_only, filter["applied_only"] == "true" && "true")
 
     {:noreply, push_patch(socket, to: ~p"/?#{params}")}
   end
@@ -129,6 +156,33 @@ defmodule LinkbotWeb.JobsLive do
 
     Map.put(entry, :id, id)
   end
+
+  defp filter_form(assigns) do
+    to_form(
+      %{
+        "role" => assigns[:role] || "",
+        "source" => assigns[:source] || "",
+        "tag" => assigns[:tag] || "",
+        "location" => assigns[:location] || "",
+        "remote_only" => assigns[:remote_only] || false,
+        "applied_only" => assigns[:applied_only] || false
+      },
+      as: :filter
+    )
+  end
+
+  defp maybe_put_param(params, _key, false), do: params
+  defp maybe_put_param(params, _key, nil), do: params
+  defp maybe_put_param(params, key, value), do: Keyword.put(params, key, value)
+
+  defp nilify(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      value -> value
+    end
+  end
+
+  defp nilify(value), do: value
 
   # ── Render ────────────────────────────────────────────────────────────────
 
@@ -186,8 +240,37 @@ defmodule LinkbotWeb.JobsLive do
               for={@filter_form}
               id="job-filters"
               phx-change="filter"
-              class="flex flex-wrap items-center justify-between gap-4"
+              class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6"
             >
+              <.input
+                field={@filter_form[:role]}
+                type="select"
+                prompt="All roles"
+                options={@roles}
+              />
+              <.input
+                field={@filter_form[:source]}
+                type="select"
+                prompt="All sources"
+                options={@sources}
+              />
+              <.input
+                field={@filter_form[:tag]}
+                type="text"
+                placeholder="tag"
+                class="w-full input input-sm"
+              />
+              <.input
+                field={@filter_form[:location]}
+                type="text"
+                placeholder="location"
+                class="w-full input input-sm"
+              />
+              <.input
+                field={@filter_form[:remote_only]}
+                type="checkbox"
+                label="Remote only"
+              />
               <.input
                 field={@filter_form[:applied_only]}
                 type="checkbox"
@@ -197,7 +280,7 @@ defmodule LinkbotWeb.JobsLive do
                 type="button"
                 id="clear-job-filters"
                 phx-click="clear_filters"
-                class="btn btn-ghost btn-sm"
+                class="btn btn-ghost btn-sm sm:col-span-2 lg:col-span-6"
               >
                 clear filters
               </button>

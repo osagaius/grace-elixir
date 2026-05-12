@@ -20,6 +20,48 @@ defmodule Linkbot.JobsTest do
     assert Jobs.list_jobs(applied_only: true) == [applied]
   end
 
+  test "list_jobs/1 can filter by role" do
+    backend = job_fixture(%{external_id: "backend-job", role: "backend"})
+    _frontend = job_fixture(%{external_id: "frontend-job", role: "frontend"})
+
+    assert Jobs.list_jobs(role: "backend") == [backend]
+  end
+
+  test "list_jobs/1 can filter by source" do
+    linkedin = job_fixture(%{external_id: "linkedin-job", source: "linkedin"})
+    _remoteok = job_fixture(%{external_id: "remoteok-job", source: "remoteok"})
+
+    assert Jobs.list_jobs(source: "linkedin") == [linkedin]
+  end
+
+  test "list_jobs/1 can filter by tag" do
+    tagged = job_fixture(%{external_id: "tagged-job", tags: ["elixir", "phoenix"]})
+    _untagged = job_fixture(%{external_id: "untagged-job", tags: ["python"]})
+
+    assert Jobs.list_jobs(tag: "phoenix") == [tagged]
+  end
+
+  test "list_jobs/1 can filter by location" do
+    remote = job_fixture(%{external_id: "remote-job", location: "Remote - United States"})
+    _onsite = job_fixture(%{external_id: "onsite-job", location: "Dublin, Ireland"})
+
+    assert Jobs.list_jobs(location: "united states") == [remote]
+  end
+
+  test "list_jobs/1 can filter by remote jobs" do
+    remote = job_fixture(%{external_id: "remote-only-job", remote: true})
+    _onsite = job_fixture(%{external_id: "onsite-only-job", remote: false})
+
+    assert Jobs.list_jobs(remote_only: true) == [remote]
+  end
+
+  test "filter_options/0 returns distinct roles and sources" do
+    job_fixture(%{external_id: "backend-linkedin", role: "backend", source: "linkedin"})
+    job_fixture(%{external_id: "backend-remoteok", role: "backend", source: "remoteok"})
+
+    assert %{roles: ["backend"], sources: ["linkedin", "remoteok"]} = Jobs.filter_options()
+  end
+
   test "get_job!/1 returns the job with given id" do
     job = job_fixture()
     assert Jobs.get_job!(job.id) == job
