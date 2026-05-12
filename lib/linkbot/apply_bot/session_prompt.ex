@@ -77,28 +77,45 @@ defmodule Linkbot.ApplyBot.SessionPrompt do
     in 3–5 concrete sentences. Never invent facts that aren't on the
     resume or in this profile.
 
-    ── ARTIFACT REQUIREMENT — at the end of EVERY step ──
+    ── ARTIFACT REQUIREMENT — strict, per-step, real-time ──
 
-    Save TWO files and emit TWO marker lines so the harness can verify
-    you reached that step:
-
-      1. Screenshot of the current Chrome viewport →
-           #{@artifact_dir}/screenshots/step-N-<slug>.png
-         If the claude-in-chrome MCP exposes a screenshot tool, use it.
-         Otherwise fall back to:
-           screencapture -x #{@artifact_dir}/screenshots/step-N-<slug>.png
-
-      2. HTML or text dump of the current page →
-           #{@artifact_dir}/html/step-N-<slug>.html
-         Use the claude-in-chrome MCP's `read_page` (or `get_page_text`)
-         tool and write its output to that file.
-
-    Then print these two lines (they MUST match these exact patterns —
-    the harness regex-matches them):
+    At the END of every step (and before you start the next one) save
+    TWO real files to disk and print THREE marker lines to stdout, in
+    this exact order:
 
         [step] N/6 <slug>
         [artifact] screenshot: #{@artifact_dir}/screenshots/step-N-<slug>.png
         [artifact] html: #{@artifact_dir}/html/step-N-<slug>.html
+
+    The harness (Elixir GenServer reading your stdout line-by-line)
+    parses these patterns to know how far you got. If you batch all
+    six steps' markers at the end, or skip steps that succeeded, the
+    Phoenix dashboard goes dark for minutes at a time and the test
+    suite cannot verify the run. Print the three lines IMMEDIATELY
+    after each step's work, then move to the next step.
+
+    File requirements:
+
+      1. Screenshot (real PNG, NOT a text placeholder) →
+           #{@artifact_dir}/screenshots/step-N-<slug>.png
+
+         Always use the macOS `screencapture` CLI for this:
+             screencapture -x #{@artifact_dir}/screenshots/step-N-<slug>.png
+
+         `-x` silences the camera click. Do NOT write a text file
+         with the .png extension — `file <path>` must report "PNG".
+         If `screencapture` fails for some reason, print
+             [runner] screenshot failed at step N
+         and continue — do not fall back to a placeholder.
+
+      2. HTML/text dump of the current page →
+           #{@artifact_dir}/html/step-N-<slug>.html
+
+         Use the claude-in-chrome MCP's `read_page` (or
+         `get_page_text`) tool. Write its raw output to the file —
+         do not rewrite or summarize it. Steps with no Chrome page
+         (the download step, the db-row step) may dump shell command
+         output instead.
 
     The six steps and their required <slug>s are: download, db-row,
     open-page, fill-form, submit, verify. Step numbers map 1→6.
