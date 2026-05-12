@@ -64,7 +64,9 @@ defmodule Linkbot.SessionRunnerTest do
     test "default command targets the real claude CLI with the expected flags" do
       # We don't actually run the real CLI here — just inspect what would be built.
       Application.delete_env(:linkbot, Linkbot.SessionRunner)
-      {bin, args} = :sys.get_state(SessionRunner) |> then(fn _ -> build_default("smoke query") end)
+
+      {bin, args} =
+        :sys.get_state(SessionRunner) |> then(fn _ -> build_default("smoke query") end)
 
       assert bin |> Path.basename() == "claude"
       assert "--dangerously-skip-permissions" in args
