@@ -15,6 +15,7 @@ defmodule Linkbot.Application do
       {DNSCluster, query: Application.get_env(:linkbot, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Linkbot.PubSub},
       Linkbot.SessionRunner,
+      Linkbot.ApplyBot.SessionRunner,
       LinkbotWeb.Endpoint
     ]
 

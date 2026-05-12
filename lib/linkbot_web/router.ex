@@ -18,6 +18,7 @@ defmodule LinkbotWeb.Router do
     pipe_through :browser
 
     live "/", JobsLive, :index
+    live "/apply", ApplyLive, :index
   end
 
   # Other scopes may use custom stacks.
