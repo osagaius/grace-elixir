@@ -28,14 +28,23 @@ defmodule Linkbot.Repo.Migrations.EnsureJobsSchema do
     );
     """)
 
-    execute("CREATE UNIQUE INDEX IF NOT EXISTS jobs_source_external_id_index ON jobs (source, external_id);")
+    execute(
+      "CREATE UNIQUE INDEX IF NOT EXISTS jobs_source_external_id_index ON jobs (source, external_id);"
+    )
+
     execute("CREATE INDEX IF NOT EXISTS jobs_posted_at_index ON jobs (posted_at);")
     execute("CREATE INDEX IF NOT EXISTS jobs_role_index ON jobs (role);")
     execute("CREATE INDEX IF NOT EXISTS jobs_tags_index ON jobs USING gin (tags);")
 
     # Linkbot application-tracking columns
-    execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS status VARCHAR(255) NOT NULL DEFAULT 'found';")
-    execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS applied_at TIMESTAMP(0) WITHOUT TIME ZONE;")
+    execute(
+      "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS status VARCHAR(255) NOT NULL DEFAULT 'found';"
+    )
+
+    execute(
+      "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS applied_at TIMESTAMP(0) WITHOUT TIME ZONE;"
+    )
+
     execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS notes TEXT;")
     execute("CREATE INDEX IF NOT EXISTS jobs_status_index ON jobs (status);")
   end

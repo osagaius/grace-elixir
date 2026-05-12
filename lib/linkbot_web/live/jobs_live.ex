@@ -20,19 +20,38 @@ defmodule LinkbotWeb.JobsLive do
      |> assign(:page_title, "Linkbot")
      |> assign(:default_query, SessionPrompt.default_query())
      |> assign(:running?, running?)
+     |> assign(:applied_only, false)
      |> assign(:current_query, query)
      |> assign(:log_count, length(log))
+     |> stream_configure(:jobs, dom_id: &"job-#{&1.id}")
      |> stream(:log, Enum.map(log, &with_id/1))
      |> assign_jobs()}
   end
 
   defp assign_jobs(socket) do
-    jobs = Jobs.list_jobs()
+    jobs = Jobs.list_jobs(applied_only: socket.assigns.applied_only)
     counts = Jobs.count_by_status()
-    assign(socket, jobs: jobs, counts: counts, total: length(jobs))
+
+    socket
+    |> assign(:counts, counts)
+    |> assign(:total, Enum.sum(Map.values(counts)))
+    |> assign(:visible_total, length(jobs))
+    |> assign(
+      :filter_form,
+      to_form(%{"applied_only" => socket.assigns.applied_only}, as: :filter)
+    )
+    |> stream(:jobs, jobs, reset: true)
   end
 
   # ── Events ────────────────────────────────────────────────────────────────
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    {:noreply,
+     socket
+     |> assign(:applied_only, params["applied_only"] == "true")
+     |> assign_jobs()}
+  end
 
   @impl true
   def handle_event("run", _params, socket) do
@@ -52,6 +71,21 @@ defmodule LinkbotWeb.JobsLive do
      socket
      |> stream(:log, [], reset: true)
      |> assign(:log_count, 0)}
+  end
+
+  def handle_event("filter", %{"filter" => filter}, socket) do
+    params =
+      if filter["applied_only"] == "true" do
+        [applied_only: "true"]
+      else
+        []
+      end
+
+    {:noreply, push_patch(socket, to: ~p"/?#{params}")}
+  end
+
+  def handle_event("clear_filters", _params, socket) do
+    {:noreply, push_patch(socket, to: ~p"/")}
   end
 
   # ── PubSub ────────────────────────────────────────────────────────────────
@@ -101,7 +135,7 @@ defmodule LinkbotWeb.JobsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-200 text-base-content">
+    <Layouts.app flash={@flash}>
       <div class="max-w-7xl mx-auto p-6 space-y-6">
         <header class="flex items-center justify-between">
           <div>
@@ -136,12 +170,38 @@ defmodule LinkbotWeb.JobsLive do
               </div>
               <div class="flex gap-4">
                 <.stat label="total" value={@total} />
+                <.stat label="shown" value={@visible_total} />
                 <.stat label="found" value={Map.get(@counts, "found", 0)} />
                 <.stat label="applied" value={Map.get(@counts, "applied", 0)} />
                 <.stat label="skipped" value={Map.get(@counts, "skipped", 0)} />
                 <.stat label="failed" value={Map.get(@counts, "failed", 0)} />
               </div>
             </div>
+          </div>
+        </section>
+
+        <section class="card bg-base-100 shadow">
+          <div class="card-body py-4">
+            <.form
+              for={@filter_form}
+              id="job-filters"
+              phx-change="filter"
+              class="flex flex-wrap items-center justify-between gap-4"
+            >
+              <.input
+                field={@filter_form[:applied_only]}
+                type="checkbox"
+                label="Applied only"
+              />
+              <button
+                type="button"
+                id="clear-job-filters"
+                phx-click="clear_filters"
+                class="btn btn-ghost btn-sm"
+              >
+                clear filters
+              </button>
+            </.form>
           </div>
         </section>
 
@@ -160,13 +220,13 @@ defmodule LinkbotWeb.JobsLive do
                     <th></th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr :if={@jobs == []}>
+                <tbody id="jobs" phx-update="stream">
+                  <tr id="jobs-empty" class="hidden only:table-row">
                     <td colspan="7" class="text-center opacity-60 py-10">
-                      No jobs yet — click <span class="font-semibold">Run session</span>.
+                      No jobs match the current filter.
                     </td>
                   </tr>
-                  <tr :for={job <- @jobs}>
+                  <tr :for={{dom_id, job} <- @streams.jobs} id={dom_id}>
                     <td class="font-medium">{job.title}</td>
                     <td>{job.company}</td>
                     <td class="opacity-70">{job.location}</td>
@@ -215,7 +275,7 @@ defmodule LinkbotWeb.JobsLive do
           </div>
         </section>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 

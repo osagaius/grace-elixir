@@ -16,8 +16,11 @@ defmodule Linkbot.Jobs do
   defp broadcast(event, payload),
     do: Phoenix.PubSub.broadcast(Linkbot.PubSub, @topic, {event, payload})
 
-  def list_jobs do
-    Repo.all(from j in Job, order_by: [desc: j.inserted_at])
+  def list_jobs(filters \\ []) do
+    Job
+    |> apply_filters(filters)
+    |> order_by([j], desc: j.inserted_at)
+    |> Repo.all()
   end
 
   def get_job!(id), do: Repo.get!(Job, id)
@@ -47,6 +50,14 @@ defmodule Linkbot.Jobs do
   def count_by_status do
     Repo.all(from j in Job, group_by: j.status, select: {j.status, count(j.id)})
     |> Enum.into(%{})
+  end
+
+  defp apply_filters(query, filters) do
+    Enum.reduce(filters, query, fn
+      {:applied_only, true}, q -> where(q, [j], j.status == "applied")
+      {:applied_only, _}, q -> q
+      _, q -> q
+    end)
   end
 
   defp tap_broadcast({:ok, job} = result, event) do

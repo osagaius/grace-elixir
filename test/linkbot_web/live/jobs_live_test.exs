@@ -12,7 +12,7 @@ defmodule LinkbotWeb.JobsLiveTest do
 
       assert html =~ "Linkbot"
       assert html =~ "Run session"
-      assert html =~ "No jobs yet"
+      assert html =~ "No jobs match the current filter"
       assert html =~ "Senior Backend Engineer, Remote"
     end
 
@@ -34,10 +34,39 @@ defmodule LinkbotWeb.JobsLiveTest do
       refute html =~ "No jobs yet"
     end
 
+    test "filters job rows to applied jobs", %{conn: conn} do
+      applied =
+        job_fixture(%{
+          title: "Applied Engineer",
+          external_id: "applied-300",
+          status: "applied"
+        })
+
+      found =
+        job_fixture(%{
+          title: "Found Engineer",
+          external_id: "found-300",
+          status: "found"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#job-#{applied.id}")
+      assert has_element?(view, "#job-#{found.id}")
+
+      view
+      |> element("#job-filters")
+      |> render_change(%{"filter" => %{"applied_only" => "true"}})
+
+      assert_patch(view, ~p"/?applied_only=true")
+      assert has_element?(view, "#job-#{applied.id}")
+      refute has_element?(view, "#job-#{found.id}")
+    end
+
     test "live-updates when a job is created via the context", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      assert render(view) =~ "No jobs yet"
+      assert render(view) =~ "No jobs match the current filter"
 
       {:ok, _job} =
         Linkbot.Jobs.create_job(%{
@@ -61,7 +90,8 @@ defmodule LinkbotWeb.JobsLiveTest do
       SessionRunner.stop_session()
 
       Application.put_env(:linkbot, SessionRunner,
-        command: {"/bin/bash", ["-c", "echo claude-says-hello; echo about-to-open-chrome; echo done"]}
+        command:
+          {"/bin/bash", ["-c", "echo claude-says-hello; echo about-to-open-chrome; echo done"]}
       )
 
       on_exit(fn ->
