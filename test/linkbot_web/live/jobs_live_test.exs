@@ -7,11 +7,10 @@ defmodule LinkbotWeb.JobsLiveTest do
   alias Linkbot.SessionRunner
 
   describe "/" do
-    test "renders empty state and the Run session button when there are no jobs", %{conn: conn} do
+    test "renders empty state when there are no jobs", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/")
 
-      assert html =~ "Linkbot"
-      assert html =~ "Run session"
+      assert html =~ "Grace"
       assert html =~ "No jobs match the current filter"
       assert html =~ "Senior Backend Engineer, Remote"
     end
@@ -150,10 +149,13 @@ defmodule LinkbotWeb.JobsLiveTest do
       :ok
     end
 
-    test "clicking Run streams the session's stdout into the log panel", %{conn: conn} do
+    test "session stdout streams into the log panel", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      view |> element("button", "Run session") |> render_click()
+      # The "Run session" header button was removed in #4; invoke the
+      # legacy runner directly so we still cover the LV's stdout-stream
+      # rendering path.
+      {:ok, _pid} = SessionRunner.run()
 
       # Wait for the runner to flush all log lines into the LiveView.
       # The runner broadcasts {:log, _} messages which the LV folds into its
@@ -163,8 +165,6 @@ defmodule LinkbotWeb.JobsLiveTest do
       assert html =~ "claude-says-hello"
       assert html =~ "about-to-open-chrome"
       assert html =~ "done"
-      # Status flips to running on :started, then back to idle on :exited.
-      assert html =~ "idle" or html =~ "running"
     end
   end
 

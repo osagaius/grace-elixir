@@ -11,6 +11,16 @@ config :linkbot,
   ecto_repos: [Linkbot.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# Oban background-job framework. The `applybot` queue holds
+# ApplyBot.ApplyWorker jobs; concurrency 1 makes the queue serial,
+# matching the singleton SessionRunner.
+config :linkbot, Oban,
+  repo: Linkbot.Repo,
+  queues: [applybot: 1],
+  plugins: [
+    {Oban.Plugins.Pruner, max_age: 7 * 24 * 3600}
+  ]
+
 # Configure the endpoint
 config :linkbot, LinkbotWeb.Endpoint,
   url: [host: "localhost"],

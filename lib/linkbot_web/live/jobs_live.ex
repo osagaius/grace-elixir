@@ -341,18 +341,6 @@ defmodule LinkbotWeb.JobsLive do
     """
   end
 
-  attr :label, :string, required: true
-  attr :value, :integer, required: true
-
-  defp stat(assigns) do
-    ~H"""
-    <div class="text-center">
-      <div class="text-xs uppercase opacity-60">{@label}</div>
-      <div class="text-lg font-mono">{@value}</div>
-    </div>
-    """
-  end
-
   attr :status, :string, default: nil
 
   defp status_badge(assigns) do
