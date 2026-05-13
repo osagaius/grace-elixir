@@ -93,6 +93,25 @@ defmodule Linkbot.ApplyBot.ApplyWorkerTest do
       assert :ok = perform_job(ApplyWorker, @args)
       refute File.exists?(sentinel), "SessionRunner was invoked despite already-applied row"
     end
+
+    test "rate-limit line in stdout converts {:claude_exit, _} into {:snooze, _}" do
+      seed_job("found")
+
+      # Tighten the base snooze so the assertion is bounded — full
+      # 2h+jitter still works, but a small window is easier to reason
+      # about under test.
+      Application.put_env(:linkbot, ApplyWorker, rate_limit_snooze_seconds: 60)
+      on_exit(fn -> Application.delete_env(:linkbot, ApplyWorker) end)
+
+      set_fake_command("""
+      echo "You've hit your limit · resets 8:30pm (America/Santo_Domingo)"
+      exit 1
+      """)
+
+      assert {:snooze, snooze} = perform_job(ApplyWorker, @args)
+      assert is_integer(snooze)
+      assert snooze >= 60
+    end
   end
 
   describe "Oban.insert/1 uniqueness" do
