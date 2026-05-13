@@ -94,6 +94,26 @@ defmodule Linkbot.ApplyBot.ApplyWorkerTest do
       refute File.exists?(sentinel), "SessionRunner was invoked despite already-applied row"
     end
 
+    test "exit 0 with jobs.status='failed' is terminal (:ok, no retry)" do
+      seed_job("found")
+      # Simulate STEP 6's psql update writing 'failed' (listing 404 etc.)
+      # before the bot exits. The worker should treat this as terminal
+      # so Oban marks the job complete instead of retrying forever.
+      SessionRunner.subscribe()
+
+      set_fake_command("""
+      echo '[step] 6/6 verify'
+      sleep 0.3
+      """)
+
+      task = Task.async(fn -> perform_job(ApplyWorker, @args) end)
+
+      assert_receive {:started, _}, 1_500
+      from(j in Job, where: j.url == ^@job_url) |> Repo.update_all(set: [status: "failed"])
+
+      assert :ok = Task.await(task, 5_000)
+    end
+
     test "rate-limit line in stdout converts {:claude_exit, _} into {:snooze, _}" do
       seed_job("found")
 

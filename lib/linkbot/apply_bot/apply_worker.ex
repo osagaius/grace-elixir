@@ -72,15 +72,19 @@ defmodule Linkbot.ApplyBot.ApplyWorker do
       {:exited, %{status: 0}} ->
         cond do
           applied?(job_url) -> :ok
+          # The prompt's STEP 6 writes status='failed' or 'skipped' when
+          # the listing has been taken down or otherwise can't be applied
+          # to. Treat those as terminal — retrying just burns dispatches.
+          terminal_status?(job_url) -> :ok
           rate_limited?(log_acc) -> {:snooze, rate_limit_snooze()}
           true -> {:error, :session_exited_without_applied_status}
         end
 
       {:exited, %{status: status}} ->
-        if rate_limited?(log_acc) do
-          {:snooze, rate_limit_snooze()}
-        else
-          {:error, {:claude_exit, status}}
+        cond do
+          rate_limited?(log_acc) -> {:snooze, rate_limit_snooze()}
+          terminal_status?(job_url) -> :ok
+          true -> {:error, {:claude_exit, status}}
         end
 
       # Drain other PubSub events we subscribed to but don't act on, so
@@ -109,5 +113,9 @@ defmodule Linkbot.ApplyBot.ApplyWorker do
 
   defp applied?(job_url) do
     Repo.exists?(from j in Job, where: j.url == ^job_url and j.status == "applied")
+  end
+
+  defp terminal_status?(job_url) do
+    Repo.exists?(from j in Job, where: j.url == ^job_url and j.status in ["failed", "skipped"])
   end
 end
