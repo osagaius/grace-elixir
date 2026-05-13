@@ -270,8 +270,8 @@ defmodule LinkbotWeb.JobsLive do
                     <th>Location</th>
                     <th>Status</th>
                     <th>Applied at</th>
+                    <th>Actions</th>
                     <th>Notes</th>
-                    <th></th>
                   </tr>
                 </thead>
                 <tbody id="jobs" phx-update="stream">
@@ -286,17 +286,25 @@ defmodule LinkbotWeb.JobsLive do
                     <td class="opacity-70">{job.location}</td>
                     <td><.status_badge status={job.status} /></td>
                     <td class="font-mono text-xs">{format_dt(job.applied_at)}</td>
-                    <td class="opacity-70 max-w-md truncate">{job.notes}</td>
-                    <td>
-                      <a
-                        :if={job.url}
-                        href={job.url}
-                        target="_blank"
-                        class="link link-primary text-sm"
-                      >
-                        open ↗
-                      </a>
+                    <td class="whitespace-nowrap w-px">
+                      <div class="inline-flex items-center gap-2">
+                        <.link
+                          navigate={~p"/jobs/#{job.id}/apply"}
+                          class="btn btn-primary btn-xs"
+                        >
+                          ▶ apply
+                        </.link>
+                        <a
+                          :if={job.url}
+                          href={job.url}
+                          target="_blank"
+                          class="btn btn-ghost btn-xs"
+                        >
+                          open ↗
+                        </a>
+                      </div>
                     </td>
+                    <td class="opacity-70 max-w-md truncate">{job.notes}</td>
                   </tr>
                 </tbody>
               </table>

@@ -1,7 +1,7 @@
 defmodule LinkbotWeb.ApplyLive do
   use LinkbotWeb, :live_view
 
-  alias Linkbot.ApplyBot.{SessionRunner, SessionPrompt}
+  alias Linkbot.{Jobs, ApplyBot.SessionRunner, ApplyBot.SessionPrompt}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -18,11 +18,47 @@ defmodule LinkbotWeb.ApplyLive do
      |> assign(:running?, running?)
      |> assign(:current_job_url, job_url)
      |> assign(:current_resume_url, resume_url)
+     |> assign(:job, nil)
      |> assign(:job_url, job_url || SessionPrompt.default_job_url())
      |> assign(:resume_url, resume_url || SessionPrompt.default_resume_url())
      |> assign(:log_count, length(log))
      |> stream(:log, Enum.map(log, &with_id/1))
      |> assign(:form, build_form(SessionPrompt.default_job_url(), SessionPrompt.default_resume_url()))}
+  end
+
+  @impl true
+  def handle_params(%{"id" => id}, _uri, socket) do
+    case load_job(id) do
+      {:ok, job} ->
+        {:noreply,
+         socket
+         |> assign(:job, job)
+         |> assign(:page_title, "ApplyBot — #{job.title || "job ##{job.id}"}")
+         |> assign(:job_url, job.url)
+         |> assign(:form, build_form(job.url, socket.assigns.resume_url))}
+
+      :error ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Job not found")
+         |> push_navigate(to: ~p"/apply")}
+    end
+  end
+
+  def handle_params(_params, _uri, socket), do: {:noreply, socket}
+
+  defp load_job(id) do
+    case Integer.parse(id) do
+      {int_id, ""} ->
+        try do
+          {:ok, Jobs.get_job!(int_id)}
+        rescue
+          Ecto.NoResultsError -> :error
+        end
+
+      _ ->
+        :error
+    end
   end
 
   # ── Events ────────────────────────────────────────────────────────────────
@@ -127,11 +163,18 @@ defmodule LinkbotWeb.ApplyLive do
         <header class="flex items-center justify-between">
           <div>
             <h1 class="text-3xl font-bold tracking-tight">ApplyBot</h1>
-            <p class="text-sm opacity-70">
+            <p :if={!@job} class="text-sm opacity-70">
               Phoenix LiveView dashboard for a Claude session that applies to a single job using your resume.
+            </p>
+            <p :if={@job} class="text-sm opacity-70">
+              Applying to
+              <span class="font-medium">{@job.title}</span>
+              <span :if={@job.company}>@ <span class="font-medium">{@job.company}</span></span>
+              <span class="opacity-50">— job ##{@job.id}</span>
             </p>
           </div>
           <div class="flex gap-2">
+            <.link navigate={~p"/"} class="btn btn-ghost btn-sm">← jobs</.link>
             <button :if={!@running?} phx-click="run" class="btn btn-primary">
               ▶ Apply
             </button>
