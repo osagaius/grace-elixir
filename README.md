@@ -1,4 +1,4 @@
-# Linkbot
+# Grace - an open-source agent for job applications
 
 To start your Phoenix server:
 
