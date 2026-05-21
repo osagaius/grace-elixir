@@ -1,11 +1,17 @@
 defmodule LinkbotWeb.ApplyLive do
   use LinkbotWeb, :live_view
 
-  alias Linkbot.{Jobs, ApplyBot.SessionRunner, ApplyBot.SessionPrompt}
+  import Ecto.Query, only: [from: 2]
+  alias Linkbot.{Jobs, ApplyBot.ApplyWorker, ApplyBot.SessionRunner, ApplyBot.SessionPrompt, Repo}
+
+  @queue_depth_tick_ms 2_000
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket), do: SessionRunner.subscribe()
+    if connected?(socket) do
+      SessionRunner.subscribe()
+      :timer.send_interval(@queue_depth_tick_ms, self(), :tick_queue_depth)
+    end
 
     %{running?: running?, job_url: job_url, resume_url: resume_url, log: log} =
       SessionRunner.status()
@@ -23,7 +29,11 @@ defmodule LinkbotWeb.ApplyLive do
      |> assign(:resume_url, resume_url || SessionPrompt.default_resume_url())
      |> assign(:log_count, length(log))
      |> stream(:log, Enum.map(log, &with_id/1))
-     |> assign(:form, build_form(SessionPrompt.default_job_url(), SessionPrompt.default_resume_url()))}
+     |> assign(
+       :form,
+       build_form(SessionPrompt.default_job_url(), SessionPrompt.default_resume_url())
+     )
+     |> assign_queue_depth()}
   end
 
   @impl true
@@ -84,12 +94,17 @@ defmodule LinkbotWeb.ApplyLive do
         {:noreply, put_flash(socket, :error, "Resume URL is required")}
 
       true ->
-        case SessionRunner.run(job_url, resume_url) do
-          {:ok, _pid} ->
-            {:noreply, put_flash(socket, :info, "Apply session started")}
+        case %{job_url: job_url, resume_url: resume_url}
+             |> ApplyWorker.new()
+             |> Oban.insert() do
+          {:ok, _job} ->
+            {:noreply,
+             socket
+             |> put_flash(:info, "Queued for apply")
+             |> assign_queue_depth()}
 
-          {:error, :already_running} ->
-            {:noreply, put_flash(socket, :error, "Already running")}
+          {:error, changeset} ->
+            {:noreply, put_flash(socket, :error, "Could not queue: #{inspect(changeset.errors)}")}
         end
     end
   end
@@ -123,14 +138,31 @@ defmodule LinkbotWeb.ApplyLive do
     {:noreply,
      socket
      |> assign(:running?, false)
-     |> push_log(entry)}
+     |> push_log(entry)
+     |> assign_queue_depth()}
   end
 
-  def handle_info({:stopped, _}, socket), do: {:noreply, assign(socket, :running?, false)}
+  def handle_info({:stopped, _}, socket),
+    do: {:noreply, socket |> assign(:running?, false) |> assign_queue_depth()}
 
   def handle_info({:log, entry}, socket), do: {:noreply, push_log(socket, entry)}
 
+  def handle_info(:tick_queue_depth, socket), do: {:noreply, assign_queue_depth(socket)}
+
   def handle_info(_other, socket), do: {:noreply, socket}
+
+  defp assign_queue_depth(socket), do: assign(socket, :queue_depth, queue_depth())
+
+  defp queue_depth do
+    Repo.aggregate(
+      from(j in Oban.Job,
+        where:
+          j.queue == "applybot" and
+            j.state in ["available", "scheduled", "executing", "retryable"]
+      ),
+      :count
+    )
+  end
 
   defp push_log(socket, entry) do
     socket
@@ -167,16 +199,15 @@ defmodule LinkbotWeb.ApplyLive do
               Phoenix LiveView dashboard for a Claude session that applies to a single job using your resume.
             </p>
             <p :if={@job} class="text-sm opacity-70">
-              Applying to
-              <span class="font-medium">{@job.title}</span>
+              Applying to <span class="font-medium">{@job.title}</span>
               <span :if={@job.company}>@ <span class="font-medium">{@job.company}</span></span>
               <span class="opacity-50">— job ##{@job.id}</span>
             </p>
           </div>
           <div class="flex gap-2">
             <.link navigate={~p"/"} class="btn btn-ghost btn-sm">← jobs</.link>
-            <button :if={!@running?} phx-click="run" class="btn btn-primary">
-              ▶ Apply
+            <button phx-click="run" class="btn btn-primary">
+              ▶ Queue
             </button>
             <button :if={@running?} phx-click="stop" class="btn btn-error">
               ■ Stop
@@ -223,6 +254,10 @@ defmodule LinkbotWeb.ApplyLive do
                 <div class="font-mono text-xs truncate">
                   {@current_job_url || "—"}
                 </div>
+              </div>
+              <div>
+                <div class="text-xs uppercase opacity-60">Queue depth</div>
+                <div class="font-mono">{@queue_depth}</div>
               </div>
             </div>
           </div>

@@ -21,6 +21,10 @@ config :linkbot, LinkbotWeb.Endpoint,
   secret_key_base: "i6LH3TICPVTuo2ORfzDtLtm1y/9b50m6KyyJ92Own88WXo2QEtFtbTLwdvI64L7o",
   server: false
 
+# Oban runs in manual mode under test — jobs don't auto-execute,
+# so worker tests can use Oban.Testing's perform_job/2 helper.
+config :linkbot, Oban, testing: :manual
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

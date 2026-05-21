@@ -14,6 +14,7 @@ defmodule Linkbot.Application do
        repos: Application.fetch_env!(:linkbot, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:linkbot, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Linkbot.PubSub},
+      {Oban, Application.fetch_env!(:linkbot, Oban)},
       Linkbot.SessionRunner,
       Linkbot.ApplyBot.SessionRunner,
       LinkbotWeb.Endpoint
